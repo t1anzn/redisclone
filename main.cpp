@@ -44,5 +44,14 @@ int main()
     {
         die("bind()"); // If binding fails, print an error message and exit
     }
+
+    // ===========================
+    // Section: Listen for Connections
+    // ===========================
+    rv = listen(fd, SOMAXCONN); // Listen for incoming connections, allowing a maximum queue of SOMAXCONN (4096 on Linux)
+    if (rv)
+    {
+        die("listen()");
+    } // If listening fails, print an error message and exit
     return 0;
 }
