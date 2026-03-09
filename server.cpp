@@ -28,8 +28,13 @@ static void dosomething(int connfd)
     printf("client says: %s\n", rbuf);
 
     // Prepare a response message to send back to the client
-    char wbuf[] = "world";             // Buffer containing the response message "world"
-    write(connfd, wbuf, strlen(wbuf)); // Parameters: file descriptor, buffer, size of buffer (length of the message)
+    char wbuf[] = "world";                          // Buffer containing the response message "world"
+    ssize_t wn = write(connfd, wbuf, strlen(wbuf)); // Parameters: file descriptor, buffer, size of buffer (length of the message)
+    if (wn < 0)
+    {
+        die("write() error");
+        return;
+    }
 }
 
 int main()
