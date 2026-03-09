@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cassert>
 #include <cstdlib>
+#include <unistd.h> // For close()
 
 void die(const char *msg) // Helper function to print an error message and exit the program
 {
@@ -53,5 +54,21 @@ int main()
     {
         die("listen()");
     } // If listening fails, print an error message and exit
+
+    // ===========================
+    // Section: Accept Connections
+    // ===========================
+    while (true)
+    {
+        struct sockaddr_in client_addr = {};
+        socklen_t addrlen = sizeof(client_addr);
+        int connfd = accept(fd, (struct sockaddr *)&client_addr, &addrlen); // Accept an incoming connection
+        if (connfd < 0)
+        {
+            continue; // error
+        }
+
+        close(connfd);
+    }
     return 0;
 }
