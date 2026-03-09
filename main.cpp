@@ -4,12 +4,32 @@
 #include <cstdio>
 #include <cassert>
 #include <cstdlib>
+#include <cstring>  // For strlen()
 #include <unistd.h> // For close()
 
+// ===========================
+// Helper functions and definitions
+// ===========================
 void die(const char *msg) // Helper function to print an error message and exit the program
 {
     perror(msg);
     exit(1);
+}
+
+static void dosomething(int connfd)
+{
+    char rbuf[64] = {};                               // Buffer to hold incoming data from the client
+    ssize_t n = read(connfd, rbuf, sizeof(rbuf) - 1); // Parameters: file descriptor, buffer, size of buffer
+    if (n < 0)
+    {
+        die("read() error");
+        return;
+    }
+    printf("client says: %s\n", rbuf);
+
+    // Prepare a response message to send back to the client
+    char wbuf[] = "world";             // Buffer containing the response message "world"
+    write(connfd, wbuf, strlen(wbuf)); // Parameters: file descriptor, buffer, size of buffer (length of the message)
 }
 
 int main()
@@ -67,7 +87,7 @@ int main()
         {
             continue; // error
         }
-
+        dosomething(connfd);
         close(connfd);
     }
     return 0;
