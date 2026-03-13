@@ -1,11 +1,12 @@
-#include <iostream>
+#include <iostream>     // For input/output operations
 #include <sys/socket.h> // For socket()
 #include <netinet/in.h> // For AF_INET and SOCK_STREAM
-#include <cstdio>
-#include <cassert>
-#include <cstdlib>
-#include <cstring>  // For strlen()
-#include <unistd.h> // For close()
+#include <cstdio>       // For perror() and printf()
+#include <cassert>      // For assert()
+#include <cstdlib>      // This is included for exit() and other general utilities, but it is not used in the current code. It can be removed if not needed in future code additions.
+#include <cstring>      // For strlen()
+#include <unistd.h>     // For close()
+#include <arpa/inet.h>  // For inet_ntoa() to convert IP addresses to human-readable form
 
 // ===========================
 // Helper functions and definitions
@@ -92,6 +93,23 @@ int main()
         {
             continue; // error
         }
+
+        // Print the client's address and port for debugging purposes
+        struct sockaddr_in local_addr, remote_addr;
+        socklen_t len = sizeof(local_addr);
+
+        // Get the local address (server side of the connection)
+        if (getsockname(connfd, (struct sockaddr *)&local_addr, &len) < 0)
+            perror("getsockname");
+        else
+            printf("Server local: %s:%d\n", inet_ntoa(local_addr.sin_addr), ntohs(local_addr.sin_port));
+
+        // Get the remote address (client side of the connection)
+        if (getpeername(connfd, (struct sockaddr *)&remote_addr, &len) < 0)
+            perror("getpeername");
+        else
+            printf("Client remote: %s:%d\n", inet_ntoa(remote_addr.sin_addr), ntohs(remote_addr.sin_port));
+
         dosomething(connfd);
         close(connfd);
     }
