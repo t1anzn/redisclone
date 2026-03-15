@@ -38,6 +38,11 @@ static void dosomething(int connfd)
     }
 }
 
+int32_t one_request(int connfd)
+{
+    return 1;
+}
+
 int main()
 {
     // ===========================
@@ -94,6 +99,10 @@ int main()
             continue; // error
         }
 
+        // ===========================
+        // Debug Information: Print Client and Server Addresses
+        // ===========================
+
         // Print the client's address and port for debugging purposes
         struct sockaddr_in local_addr, remote_addr;
         socklen_t len = sizeof(local_addr);
@@ -109,6 +118,13 @@ int main()
             perror("getpeername");
         else
             printf("Client remote: %s:%d\n", inet_ntoa(remote_addr.sin_addr), ntohs(remote_addr.sin_port));
+
+        while (true)
+        {
+            int32_t err = one_request(connfd);
+            if (err)
+                break;
+        }
 
         dosomething(connfd);
         close(connfd);
