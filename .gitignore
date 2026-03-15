@@ -1,2 +1,12 @@
 .github/agents/TA.agent.md
 .vscode/c_cpp_properties.json
+client
+server
+client.dSYM/Contents/Info.plist
+client.dSYM/Contents/Resources/DWARF/client
+client.dSYM/Contents/Resources/Relocations/aarch64/client.yml
+server.dSYM/Contents/Info.plist
+server.dSYM/Contents/Resources/DWARF/server
+server.dSYM/Contents/Resources/Relocations/aarch64/server.yml
+client
+server
