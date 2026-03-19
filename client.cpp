@@ -15,6 +15,32 @@ void die(const char *msg)
     exit(1);
 }
 
+static int32_t read_full(int fd, char *buf, size_t n)
+{
+    while (n > 0)
+    {
+        ssize_t rv = read(fd, buf, n);
+        if (rv <= 0)
+            return -1; // error or EOF
+        n -= rv;
+        buf += rv;
+    }
+    return 0;
+}
+
+static int32_t write_all(int fd, const char *buf, size_t n)
+{
+    while (n > 0)
+    {
+        ssize_t rv = write(fd, buf, n);
+        if (rv <= 0)
+            return -1; // error
+        n -= rv;
+        buf += rv;
+    }
+    return 0;
+}
+
 // ===========================
 // Main function
 // ===========================
@@ -56,20 +82,36 @@ int main()
     // ===========================
     // Section: Sending a Message to the Server and Receiving a Response
     // ===========================
-    char msg[] = "hello";
-    ssize_t wn = write(fd, msg, strlen(msg)); // Send the message "hello" to the server
-    if (wn < 0)
-    {
-        die("write() error");
+    const char msg[] = "hello";
+    uint32_t msg_lenlen = (uint32_t)strlen(msg);
+    char wbuf[4 + sizeof(msg)];
+    memcpy(wbuf, &msg_lenlen, 4); // little-endian
+    memcpy(&wbuf[4], msg, msg_lenlen);
+    write_all(fd, wbuf, 4 + msg_lenlen);
+
+    const size_t k_max_msg = 4096;
+    char rbuf[4 + k_max_msg];
+
+    // Step 1: Read 4 bytes for response length
+    int32_t err = read_full(fd, rbuf, 4);
+    if (err)
+    { /* handle error */
     }
 
-    char rbuf[64] = {};
-    ssize_t n = read(fd, rbuf, sizeof(rbuf) - 1); // Read the response from the server into the buffer rbuf
-    if (n < 0)
-    {
-        die("read() error");
+    uint32_t resp_len = 0;
+    memcpy(&resp_len, rbuf, 4); // little-endian
+    if (resp_len > k_max_msg)
+    { /* handle error */
     }
-    printf("server says: %s\n", rbuf); // Print the response from the server
-    close(fd);                         // Close the socket connection
+
+    // Step 2: Read response payload
+    err = read_full(fd, &rbuf[4], resp_len);
+    if (err)
+    { /* handle error */
+    }
+
+    // Step 3: Print response
+    printf("server says: %.*s\n", resp_len, &rbuf[4]);
+    close(fd); // Close the socket connection
     return 0;
 }

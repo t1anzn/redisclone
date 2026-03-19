@@ -11,6 +11,9 @@
 // ===========================
 // Helper functions and definitions
 // ===========================
+
+const size_t k_max_msg = 4096; // Define a constant for the maximum message size
+
 void die(const char *msg) // Helper function to print an error message and exit the program
 {
     perror(msg);
@@ -73,7 +76,38 @@ static void dosomething(int connfd)
 
 int32_t one_request(int connfd)
 {
-    return 1;
+    // 4 byte header
+    char rbuf[4 + k_max_msg];                 // Buffer to hold the incoming message, including a 4-byte header for the message length
+    errno = 0;                                // Clear errno before reading
+    int32_t err = read_full(connfd, rbuf, 4); // Read the 4-byte header to get the message length
+    if (err)
+    {
+        // handle error
+        return err;
+    }
+    uint32_t len = 0;      // Variable to hold the length of the incoming message
+    memcpy(&len, rbuf, 4); // assume little-endian, copy the 4-byte header into the 'len' variable to determine the length of the message
+    if (len > k_max_msg)
+    {
+        // handle too long
+        return -1;
+    }
+    // request body
+    err = read_full(connfd, &rbuf[4], len); // Read the message body based on the length specified in the header
+    if (err)
+    {
+        // handle error
+        return err;
+    }
+    // process message
+    printf("client says: %.*s\n", len, &rbuf[4]); // Print the client's message for debugging purposes
+    // reply
+    const char reply[] = "world";
+    char wbuf[4 + sizeof(reply)];  // Buffer to hold the response message, including a 4-byte header for the message length
+    len = (uint32_t)strlen(reply); // Get the length of the response message
+    memcpy(wbuf, &len, 4);         // Copy the length of the response message
+    memcpy(&wbuf[4], reply, len);  // Copy the response message itself into the buffer after the header
+    return write_all(connfd, wbuf, 4 + len);
 }
 
 int main()
