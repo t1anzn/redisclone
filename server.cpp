@@ -17,6 +17,39 @@ void die(const char *msg) // Helper function to print an error message and exit 
     exit(1);
 }
 
+// This function reads exactly 'n' bytes from the file descriptor 'fd' into the buffer 'buf'.
+static int32_t read_full(int fd, char *buf, size_t n)
+{
+    while (n > 0)
+    {
+        ssize_t rv = read(fd, buf, n);
+        if (rv <= 0)
+        {
+            return -1; // error or EOF
+        }
+
+        n -= rv;   // decrease the number of bytes left to read
+        buf += rv; // move the buffer pointer forward by the number of bytes read
+    }
+    return 0;
+}
+
+static int32_t write_all(int fd, const char *buf, size_t n)
+{
+    while (n > 0)
+    {
+        ssize_t rv = write(fd, buf, n);
+        if (rv <= 0)
+        {
+            return -1; // error
+        }
+        assert((size_t)rv <= n); // Ensure that we don't write more than 'n' bytes
+        n -= rv;                 // decrease the number of bytes left to write
+        buf += rv;               // move the buffer pointer forward by the number of bytes written
+    }
+    return 0;
+}
+
 static void dosomething(int connfd)
 {
     char rbuf[64] = {};                               // Buffer to hold incoming data from the client
