@@ -78,7 +78,6 @@ int32_t one_request(int connfd)
 {
     // 4 byte header
     char rbuf[4 + k_max_msg];                 // Buffer to hold the incoming message, including a 4-byte header for the message length
-    errno = 0;                                // Clear errno before reading
     int32_t err = read_full(connfd, rbuf, 4); // Read the 4-byte header to get the message length
     if (err)
     {

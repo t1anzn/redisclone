@@ -9,10 +9,19 @@
 // ===========================
 // Helper functions and definitions
 // ===========================
+
+const size_t k_max_msg = 4096;
+
 void die(const char *msg)
 {
     perror(msg);
     exit(1);
+}
+
+// Helper function to print a message to the console
+void msg(const char *s)
+{
+    printf("%s\n", s);
 }
 
 static int32_t read_full(int fd, char *buf, size_t n)
@@ -38,6 +47,58 @@ static int32_t write_all(int fd, const char *buf, size_t n)
         n -= rv;
         buf += rv;
     }
+    return 0;
+}
+
+static int32_t query(int fd, const char *text)
+{
+    // ===========================
+    // Prepare the query message to send to the server
+    // ===========================
+    uint32_t len = (uint32_t)strlen(text); // Get the length of the query text
+    if (len > k_max_msg)
+        return -1;               // Check if the length exceeds the maximum allowed message size
+    char wbuf[4 + k_max_msg];    // Buffer to hold the query message. First 4 bytes is the length, followed by the query text
+    memcpy(wbuf, &len, 4);       // Copy the length of the query text
+    memcpy(&wbuf[4], text, len); // Copy the query text into the buffer.
+
+    // ===========================
+    // Send the query message to the server
+    // ===========================
+    if (int32_t err = write_all(fd, wbuf, 4 + len)) // Send the query message to the server, including the length header and the query text
+    {
+        return err;
+    }
+
+    // ===========================
+    // Read the response from the server
+    // ===========================
+    char rbuf[4 + k_max_msg]; // Buffer to hold the response from the server
+    int32_t err = read_full(fd, rbuf, 4);
+    if (err)
+    {
+        msg("read() error or EOF");
+        return err;
+    }
+
+    // ===========================
+    // Process the response from the server
+    // ===========================
+
+    memcpy(&len, rbuf, 4); // Extract the length of the response message from the first 4 bytes of the response buffer
+    if (len > k_max_msg)   // Check if the length of the response message exceeds the maximum allowed message size
+    {
+        msg("too long");
+        return -1;
+    }
+
+    err = read_full(fd, &rbuf[4], len); // Read the response message body based on the length specified in the header
+    if (err)
+    {
+        msg("read() error");
+        return err;
+    }
+    printf("server says: %.*s\n", len, &rbuf[4]); // Print the server's response for debugging purposes
     return 0;
 }
 
@@ -80,38 +141,20 @@ int main()
     printf("Remote: %s:%d\n", inet_ntoa(remote_addr.sin_addr), ntohs(remote_addr.sin_port));
 
     // ===========================
-    // Section: Sending a Message to the Server and Receiving a Response
+    // Section: Send a Query to the Server and Process the Response
     // ===========================
-    const char msg[] = "hello";
-    uint32_t msg_lenlen = (uint32_t)strlen(msg);
-    char wbuf[4 + sizeof(msg)];
-    memcpy(wbuf, &msg_lenlen, 4); // little-endian
-    memcpy(&wbuf[4], msg, msg_lenlen);
-    write_all(fd, wbuf, 4 + msg_lenlen);
-
-    const size_t k_max_msg = 4096;
-    char rbuf[4 + k_max_msg];
-
-    // Step 1: Read 4 bytes for response length
-    int32_t err = read_full(fd, rbuf, 4);
+    int32_t err = query(fd, "hello1"); // Send a query message "hello1" to the server and process the response
     if (err)
-    { /* handle error */
+    {
+        goto L_DONE;
     }
-
-    uint32_t resp_len = 0;
-    memcpy(&resp_len, rbuf, 4); // little-endian
-    if (resp_len > k_max_msg)
-    { /* handle error */
-    }
-
-    // Step 2: Read response payload
-    err = read_full(fd, &rbuf[4], resp_len);
+    err = query(fd, "hello2"); // Send another query message "hello2" to the server and process the response
     if (err)
-    { /* handle error */
+    {
+        goto L_DONE;
     }
 
-    // Step 3: Print response
-    printf("server says: %.*s\n", resp_len, &rbuf[4]);
+L_DONE:
     close(fd); // Close the socket connection
     return 0;
 }
